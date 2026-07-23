@@ -1,0 +1,47 @@
+$ hallmark start BANK-1 --title "Record a balanced transfer between two accounts"
+Started BANK-1 in state STARTED. Next step: spec.
+
+$ hallmark status BANK-1
+Run: BANK-1
+Title: Record a balanced transfer between two accounts
+State: STARTED
+Revision: 1
+Active: true
+Next step: spec
+
+Projections:
+  Jira: pending
+  GitLab: pending
+
+Evidence:
+  (none yet)
+
+$ hallmark next BANK-1
+BANK-1: STARTED -> SPECIFIED (revision 2). Next step: plan.
+$ hallmark next BANK-1
+BANK-1: SPECIFIED -> PLANNED (revision 3). Next step: build.
+$ hallmark next BANK-1
+BANK-1: PLANNED -> BUILT (revision 4). Next step: review.
+$ hallmark next BANK-1
+BANK-1: BUILT -> REVIEWED (revision 5). Next step: ship.
+$ hallmark next BANK-1
+BANK-1: REVIEWED -> SHIPPED (revision 6). Next step: (done).
+
+$ hallmark status BANK-1
+Run: BANK-1
+Title: Record a balanced transfer between two accounts
+State: SHIPPED
+Revision: 6
+Active: false
+Next step: (done)
+
+Projections:
+  Jira: synced at revision 6
+  GitLab: synced at revision 6
+
+Evidence:
+  spec: artifacts/BANK-1/spec.md
+  plan: artifacts/BANK-1/plan.md
+  build: workspace/BANK-1/src/invoiceArchive.ts
+  review: artifacts/BANK-1/review.md
+  ship: .simulated/gitlab/merge-requests/1.json

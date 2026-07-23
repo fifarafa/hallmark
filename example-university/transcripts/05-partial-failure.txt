@@ -1,0 +1,51 @@
+# BANK-2 sits at REVIEWED with an honest APPROVED review.
+# Ship it while GitLab is having an outage:
+
+$ SIMULATE_GITLAB_FAILURE_ONCE=1 hallmark next BANK-2
+BANK-2: REVIEWED -> SHIPPED (revision 6). Next step: (done).
+
+$ hallmark status BANK-2
+Run: BANK-2
+Title: Reject an unbalanced transaction
+State: SHIPPED
+Revision: 6
+Active: false
+Next step: (done)
+
+Projections:
+  Jira: synced at revision 6
+  GitLab: failed (Simulated GitLab outage (one-time).)
+
+Evidence:
+  spec: artifacts/BANK-2/spec.md
+  plan: artifacts/BANK-2/plan.md
+  build: workspace/BANK-2/src/invoiceArchive.ts
+  review: artifacts/BANK-2/review.md
+  ship: .simulated/gitlab/merge-requests/2.json
+
+# The state transition COMMITTED. Only the projection failed.
+# Heal it — no canonical state changes:
+
+$ hallmark reconcile BANK-2
+Reconciled BANK-2.
+  Jira: synced at revision 6
+  GitLab: synced at revision 6
+
+$ hallmark status BANK-2
+Run: BANK-2
+Title: Reject an unbalanced transaction
+State: SHIPPED
+Revision: 6
+Active: false
+Next step: (done)
+
+Projections:
+  Jira: synced at revision 6
+  GitLab: synced at revision 6
+
+Evidence:
+  spec: artifacts/BANK-2/spec.md
+  plan: artifacts/BANK-2/plan.md
+  build: workspace/BANK-2/src/invoiceArchive.ts
+  review: artifacts/BANK-2/review.md
+  ship: .simulated/gitlab/merge-requests/2.json

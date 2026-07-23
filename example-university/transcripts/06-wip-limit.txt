@@ -1,0 +1,14 @@
+$ hallmark start BANK-3 --title "Make transfers idempotent under retry"
+Started BANK-3 in state STARTED. Next step: spec.
+
+# Now try to start a second feature while BANK-3 is unfinished:
+$ hallmark start BANK-4 --title "Derive account statements"
+Error: Cannot start BANK-4. Active run BANK-3 is currently in state STARTED.
+Next legal step: spec.
+WIP is limited to one active run — finish (ship) BANK-3 first.
+(exit code 1)
+
+$ hallmark list
+  BANK-1  SHIPPED  (rev 6)  next=(done)  Record a balanced transfer between two accounts
+  BANK-2  SHIPPED  (rev 6)  next=(done)  Reject an unbalanced transaction
+* BANK-3  STARTED  (rev 1)  next=spec  Make transfers idempotent under retry

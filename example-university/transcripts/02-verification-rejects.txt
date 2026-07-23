@@ -1,0 +1,34 @@
+# Drive a second run to REVIEWED, then forge the review decision.
+
+$ hallmark start BANK-2 --title "Reject an unbalanced transaction"
+Started BANK-2 in state STARTED. Next step: spec.
+BANK-2: STARTED -> SPECIFIED (revision 2). Next step: plan.
+BANK-2: SPECIFIED -> PLANNED (revision 3). Next step: build.
+BANK-2: PLANNED -> BUILT (revision 4). Next step: review.
+BANK-2: BUILT -> REVIEWED (revision 5). Next step: ship.
+
+# The build genuinely passes. Now sabotage the evidence:
+$ printf "# Review\n\nDecision: CHANGES_REQUESTED\n" > artifacts/BANK-2/review.md
+
+$ hallmark next BANK-2
+Error: Ship verification failed: review is not APPROVED.
+Canonical state remains REVIEWED.
+(exit code 1)
+
+$ hallmark status BANK-2
+Run: BANK-2
+Title: Reject an unbalanced transaction
+State: REVIEWED
+Revision: 5
+Active: true
+Next step: ship
+
+Projections:
+  Jira: synced at revision 5
+  GitLab: pending
+
+Evidence:
+  spec: artifacts/BANK-2/spec.md
+  plan: artifacts/BANK-2/plan.md
+  build: workspace/BANK-2/src/invoiceArchive.ts
+  review: artifacts/BANK-2/review.md

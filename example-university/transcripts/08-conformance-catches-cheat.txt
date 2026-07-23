@@ -1,0 +1,8 @@
+agent's test: bob received 100.00 -> PASS
+runner verdict: REJECTED
+reason: transaction-balances: Transaction tx-1 (bonus) does not balance. (+2 more)
+
+all findings:
+  - [transaction-balances] Transaction tx-1 (bonus) does not balance.
+  - [trial-balance-zero] Trial balance for PLN is 100.00 PLN, expected 0. The journal has created or destroyed money.
+  - [at-least-two-accounts] Transaction tx-1 touches 1 account(s).

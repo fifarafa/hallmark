@@ -1,0 +1,45 @@
+# BANK-1 shipped. Its labels are a projection of that state.
+
+$ cat .simulated/jira/epics/BANK-1.json
+{
+  "key": "BANK-1",
+  "type": "epic",
+  "title": "Record a balanced transfer between two accounts",
+  "labels": [
+    "hallmark:shipped"
+  ],
+  "status": "open"
+}
+
+# Now vandalise every label: wrong value on the epic, none on the MR.
+$ jq ... (set labels to ["hallmark:state:STARTED","team:payments"])
+
+$ hallmark reconcile BANK-1
+Reconciled BANK-1.
+  Jira: synced at revision 6
+  GitLab: synced at revision 6
+
+$ cat .simulated/jira/epics/BANK-1.json
+{
+  "key": "BANK-1",
+  "type": "epic",
+  "title": "Record a balanced transfer between two accounts",
+  "labels": [
+    "team:payments",
+    "hallmark:shipped"
+  ],
+  "status": "open"
+}
+
+$ cat .simulated/gitlab/merge-requests/1.json
+{
+  "iid": 1,
+  "title": "BANK-1: Record a balanced transfer between two accounts",
+  "sourceBranch": "feature/BANK-1",
+  "targetBranch": "main",
+  "state": "opened",
+  "labels": [
+    "hallmark:shipped"
+  ],
+  "relatedTicket": "BANK-1"
+}

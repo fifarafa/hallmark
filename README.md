@@ -21,6 +21,10 @@ the stub either.
 Jira and GitLab remain simulated as local JSON (`.simulated/`) — the point being
 demonstrated is the control plane, not API clients:
 
+> **New here?** [`example-university/`](example-university/) is a seven-lesson
+> course in this control plane, taught by building the core of a bank. Lessons
+> 1–6 need no containers, credentials, or network and run in about a second.
+
 1. An explicit state machine.
 2. One canonical source of truth.
 3. Deterministic transitions.
