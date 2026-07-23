@@ -32,6 +32,12 @@ the run does not advance.
 Keep the scope genuinely small — a single function with a clear contract. A
 later step has to implement and test this in one pass.
 
+**Write the spec for a TypeScript/Node project.** The `build` step implements
+this as an ES module under `workspace/{{RUN_ID}}/src/` using only Node's
+standard library, tested with `node:test`. Use TypeScript naming and types in
+any identifiers or signatures you mention (`camelCase`, `true`/`false`), not
+another language's conventions.
+
 ### 2. `.simulated/jira/epics/{{RUN_ID}}.json`
 
 ```json
