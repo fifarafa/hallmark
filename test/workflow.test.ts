@@ -14,9 +14,9 @@ import path from "node:path";
 beforeEach(() => makeHome());
 afterEach(() => clearHome());
 
-test("full workflow drives STARTED -> SHIPPED and deactivates the run", () => {
+test("full workflow drives STARTED -> SHIPPED and deactivates the run", async () => {
   createRun("DEMO-1", "Hardcoded invoice archive endpoint");
-  const outcomes = runToCompletion("DEMO-1");
+  const outcomes = await runToCompletion("DEMO-1");
 
   assert.deepEqual(
     outcomes.map((o) => `${o.from}->${o.to}`),
@@ -36,10 +36,10 @@ test("full workflow drives STARTED -> SHIPPED and deactivates the run", () => {
   assert.equal(run.projections.gitlab.status, "synced");
 });
 
-test("a failed verification leaves canonical state unchanged", () => {
+test("a failed verification leaves canonical state unchanged", async () => {
   createRun("DEMO-1", "Title");
   // Drive to REVIEWED (through spec, plan, build, review).
-  for (let i = 0; i < 4; i++) advanceOne("DEMO-1");
+  for (let i = 0; i < 4; i++) await advanceOne("DEMO-1");
   assert.equal(readRun("DEMO-1").state, "REVIEWED");
   const before = readRun("DEMO-1");
 
@@ -48,19 +48,19 @@ test("a failed verification leaves canonical state unchanged", () => {
   const reviewPath = path.join(artifactsDir("DEMO-1"), "review.md");
   fs.writeFileSync(reviewPath, "# Review\n\nDecision: CHANGES_REQUESTED\n");
 
-  assert.throws(() => advanceOne("DEMO-1"), HallmarkError);
+  await assert.rejects(() => advanceOne("DEMO-1"), HallmarkError);
 
   const after = readRun("DEMO-1");
   assert.equal(after.state, "REVIEWED"); // unchanged
   assert.equal(after.revision, before.revision); // no revision bump
 });
 
-test("a skill cannot modify canonical run state", () => {
+test("a skill cannot modify canonical run state", async () => {
   createRun("DEMO-1", "Title");
   const before = fs.readFileSync(runFile("DEMO-1"), "utf8");
 
   // Running the skill directly produces artifacts but must not touch the run.
-  const result = runSkill("spec", { runId: "DEMO-1", title: "Title" });
+  const result = await runSkill("spec", { runId: "DEMO-1", title: "Title" });
   assert.equal(result.success, true);
 
   const after = fs.readFileSync(runFile("DEMO-1"), "utf8");

@@ -1,9 +1,9 @@
 // Skill: spec. Produces a specification artifact and a simulated Jira epic.
 // A skill may only write artifacts belonging to its own responsibility.
 // It never touches .hallmark/, never sets labels, never performs the transition.
-import type { SkillContext, SkillResult } from "../types.ts";
-import { artifactsDir, jiraEpicFile } from "../paths.ts";
-import { ensureDir, writeFileAtomic, writeJsonAtomic } from "../util.ts";
+import type { SkillContext, SkillResult } from "../../types.ts";
+import { artifactsDir, jiraEpicFile } from "../../paths.ts";
+import { ensureDir, writeFileAtomic, writeJsonAtomic } from "../../util.ts";
 import path from "node:path";
 
 export function runSpec(ctx: SkillContext): SkillResult {

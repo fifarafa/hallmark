@@ -1,9 +1,9 @@
 // Skill: plan. Reads the spec and produces a plan artifact plus three Jira tasks.
 import fs from "node:fs";
 import path from "node:path";
-import type { SkillContext, SkillResult } from "../types.ts";
-import { artifactsDir, jiraTaskFile, jiraTasksDir } from "../paths.ts";
-import { ensureDir, writeFileAtomic, writeJsonAtomic } from "../util.ts";
+import type { SkillContext, SkillResult } from "../../types.ts";
+import { artifactsDir, jiraTaskFile, jiraTasksDir } from "../../paths.ts";
+import { ensureDir, writeFileAtomic, writeJsonAtomic } from "../../util.ts";
 
 const TASKS = [
   { suffix: "1", title: "Implement invoice archive function" },

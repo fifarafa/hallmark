@@ -1,9 +1,9 @@
 // Skill: ship. Simulates opening a merge request and writes a ship report.
 import fs from "node:fs";
 import path from "node:path";
-import type { SkillContext, SkillResult } from "../types.ts";
-import { artifactsDir, gitlabMrDir, gitlabMrFile } from "../paths.ts";
-import { ensureDir, readJson, writeFileAtomic, writeJsonAtomic } from "../util.ts";
+import type { SkillContext, SkillResult } from "../../types.ts";
+import { artifactsDir, gitlabMrDir, gitlabMrFile } from "../../paths.ts";
+import { ensureDir, readJson, writeFileAtomic, writeJsonAtomic } from "../../util.ts";
 
 // Pick the next merge-request iid, reusing this run's MR if it already exists
 // (so re-running ship is safe and each run gets a distinct iid).

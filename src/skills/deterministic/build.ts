@@ -2,10 +2,10 @@
 // tests, and writes a build report + captured test output. The runner will
 // later re-run these tests independently — this report is only a declaration.
 import path from "node:path";
-import type { SkillContext, SkillResult } from "../types.ts";
-import { artifactsDir, workspaceDir } from "../paths.ts";
-import { runFeatureTests } from "../feature-tests.ts";
-import { ensureDir, writeFileAtomic } from "../util.ts";
+import type { SkillContext, SkillResult } from "../../types.ts";
+import { artifactsDir, workspaceDir } from "../../paths.ts";
+import { runFeatureTests } from "../../feature-tests.ts";
+import { ensureDir, writeFileAtomic } from "../../util.ts";
 
 const IMPL = `// Generated feature: hardcoded invoice archive endpoint.
 export type Invoice = {

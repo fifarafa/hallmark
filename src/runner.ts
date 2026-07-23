@@ -66,7 +66,7 @@ export function reconcileAll(runId: string): void {
 
 // Execute exactly one legal step. Throws HallmarkError (with an actionable message)
 // on skill failure or verification failure, leaving canonical state untouched.
-export function advanceOne(runId: string): StepOutcome {
+export async function advanceOne(runId: string): Promise<StepOutcome> {
   const run = readRun(runId);
   const from = run.state;
   const step = stepForState(from);
@@ -82,7 +82,7 @@ export function advanceOne(runId: string): StepOutcome {
   const to = nextState(from)!;
 
   // 1. Run the skill (it only produces artifacts + a declared result).
-  const result = runSkill(step, { runId, title: run.title });
+  const result = await runSkill(step, { runId, title: run.title });
   if (!result.success) {
     appendEvent(runId, {
       type: "SKILL_FAILED",
@@ -135,13 +135,13 @@ export function advanceOne(runId: string): StepOutcome {
 }
 
 // Run legal steps until the workflow completes, errors, or has nothing to do.
-export function runToCompletion(runId: string): StepOutcome[] {
+export async function runToCompletion(runId: string): Promise<StepOutcome[]> {
   const outcomes: StepOutcome[] = [];
-  // Bounded loop: at most one step per state, so 6 is a safe hard cap.
+  // Bounded loop: at most one step per state, so 8 is a safe hard cap.
   for (let i = 0; i < 8; i++) {
     const before = readRun(runId).state;
     if (stepForState(before) === null) break;
-    const outcome = advanceOne(runId);
+    const outcome = await advanceOne(runId);
     outcomes.push(outcome);
     if (!outcome.transitioned) break;
   }

@@ -1,14 +1,25 @@
 # hallmark-run
 
-A local, deterministic proof-of-concept for **agentic software delivery**:
+A control plane for **agentic software delivery**:
 
 ```
 spec → plan → build → review → ship
 ```
 
-In a real system each step would be driven by an AI agent, Jira, GitLab and
-sandboxes. Here the moving parts are stubbed so the *control plane* — the part
-that actually matters — can be shown clearly:
+Each step can run one of two ways, and the runner cannot tell them apart:
+
+| Provider | What a step is | Speed | Needs |
+| --- | --- | --- | --- |
+| `deterministic` (default) | A fixed local stub | ~1s for the whole pipeline | nothing |
+| `sandcastle` | A **real Claude Code agent** in a Podman container | minutes | Podman + a token |
+
+Both hand back the same `SkillResult`, and **`src/verification.ts` verifies both
+by identical rules**. That symmetry is the product: swapping a stub for a live
+agent does not require touching verification, because verification never trusted
+the stub either.
+
+Jira and GitLab remain simulated as local JSON (`.simulated/`) — the point being
+demonstrated is the control plane, not API clients:
 
 1. An explicit state machine.
 2. One canonical source of truth.
@@ -44,7 +55,9 @@ and never depends on an external side effect having succeeded.
 ```
 CLI
  ├── state machine        (explicit states + legal transitions)
- ├── skill executor       (deterministic local skills: spec/plan/build/review/ship)
+ ├── skill provider       (HOW a step runs — never WHETHER it counts)
+ │     ├── deterministic  (src/skills/deterministic/**  — fixed stubs)
+ │     └── sandcastle     (src/skills/sandcastle/**     — Claude Code in Podman)
  ├── evidence verifier    (re-checks artifacts, re-runs tests — trusts nothing)
  └── reconciler           (projects state onto external systems as labels)
        ├── simulated Jira      (.simulated/jira/**)
@@ -166,20 +179,84 @@ state, and its next legal step. This makes the cost of high WIP explicit:
 context-switching and half-finished work are turned into a hard stop instead of
 invisible drag. Finish (ship) the current feature before starting the next.
 
-## How to replace the stubs later
+## Running real agents (`HALLMARK_SKILLS=sandcastle`)
 
-Every stub sits behind a small, obvious seam:
+Backed by [sandcastle](https://github.com/mattpocock/sandcastle), which
+orchestrates coding agents in containers.
 
-- **`build` skill → a real sandbox (e.g. Sandcastle).** Replace
-  `src/skills/build.ts` so it provisions a sandbox, runs the real build there,
-  and returns evidence paths. The runner's `verifyBuilt` (re-running tests, exit
-  code, no-TODO) stays exactly the same — it already trusts nothing.
+### One-time setup
+
+```bash
+npm install
+brew install podman && podman machine init && podman machine start
+
+# Build the agent image (uses .sandcastle/Containerfile)
+npx @ai-hero/sandcastle podman build-image --image-name hallmark-agent:local
+
+# Credentials — either a subscription token...
+claude setup-token           # then paste into .sandcastle/.env
+# ...or an API key
+cp .sandcastle/.env.example .sandcastle/.env   # and fill in ANTHROPIC_API_KEY
+```
+
+### Run
+
+```bash
+HALLMARK_SKILLS=sandcastle npm run hallmark -- start FEAT-1 --title "Parse ISO-8601 durations"
+HALLMARK_SKILLS=sandcastle npm run hallmark -- run FEAT-1
+```
+
+`spec`, `plan`, `build` and `review` each become one Claude Code agent run.
+`ship` stays deterministic under every provider — it writes a fixed JSON
+structure and allocates an integer, so there is no judgement in it to delegate.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `HALLMARK_SKILLS` | `deterministic` | `deterministic` or `sandcastle` |
+| `HALLMARK_SANDBOX` | `podman` | `podman` or `docker` |
+| `HALLMARK_IMAGE` | `hallmark-agent:local` | Container image |
+| `HALLMARK_MODEL` | `claude-opus-4-8` | Agent model |
+
+Agent transcripts land in `.hallmark/logs/<runId>.<step>.log`.
+
+### The skills are the prompts
+
+`skills/<step>/SKILL.md` **is** the prompt sandcastle feeds the agent, with
+`{{RUN_ID}}` and `{{TITLE}}` substituted in. There is no second copy of the
+instructions: editing that markdown changes what the agent actually does.
+
+Each prompt states the exact markers the runner greps for — `## Acceptance
+Criteria`, `Decision: APPROVED`, no `TODO`/`FIXME` — so the contract is visible
+to the agent being held to it. It is still only a contract: the runner re-reads
+the files and re-runs the tests regardless of what the agent claims.
+
+### How a skill is prevented from forging state
+
+`.hallmark/`, `.simulated/`, `artifacts/` and `workspace/` are gitignored, so a
+fresh git worktree contains **none** of them. The agent starts unable to see
+canonical state at all, and both directions are explicit allowlists in
+`src/skills/sandcastle/index.ts`:
+
+- **copy-in** — the inputs a step may read, seeded into the worktree first.
+  `.hallmark/` is in no step's list, so canonical state is not merely read-only
+  to the agent; it is absent.
+- **copy-out** — the outputs a step may produce, copied back afterwards.
+  Everything else dies with the worktree. A `spec` agent cannot emit a build
+  report; a `build` agent cannot rewrite the spec it was handed.
+
+`test/sandcastle-isolation.test.ts` pins this: it simulates an agent that writes
+a forged `.hallmark/runs/<id>.json` and another step's artifact, and asserts
+neither reaches the repo. Those tests need no container and run in the normal
+offline suite.
+
+## How to replace the remaining stubs
+
 - **Simulated Jira → real Jira API.** Replace `src/reconciliation/jira.ts`
   (label add/remove on epic + tasks) with REST calls. The `labelsFor(state)`
   contract and idempotent reconcile algorithm are unchanged.
 - **Simulated GitLab → real GitLab API.** Replace `src/reconciliation/gitlab.ts`
-  and the MR creation in `src/skills/ship.ts` with API calls. The one-time
-  failure hook shows how transient outages are already tolerated.
+  and the MR creation in `src/skills/deterministic/ship.ts` with API calls. The
+  one-time failure hook shows how transient outages are already tolerated.
 - **Local JSON → durable storage.** Replace `src/run-store.ts` (atomic
   temp-file + rename, revision-based optimistic concurrency) with a database
   using a transaction and a version column. Every other module talks to it only
@@ -189,7 +266,13 @@ Every stub sits behind a small, obvious seam:
 
 1. **Single-process, file-based store.** Optimistic concurrency via `revision`
    is real, but there is no cross-process locking; it assumes one operator.
-2. **Skills are deterministic stubs.** They generate fixed content instead of
-   invoking real agents — enough to exercise the control plane, not the work.
+2. **Jira and GitLab are simulated** as local JSON under `.simulated/`. The
+   reconciliation algorithm is real; the transport is not.
 3. **Fixed 5-step linear pipeline.** No branching, rollback, or parallel steps;
    this is intentionally *not* a general workflow framework.
+4. **The default provider is stubs.** `HALLMARK_SKILLS=deterministic` generates
+   fixed content rather than invoking agents, so the test suite stays offline
+   and free. Real agent runs are opt-in via `HALLMARK_SKILLS=sandcastle`.
+5. **A failed step is not retried.** The run stops in its current state and the
+   step can be re-run by hand. Agents fail nondeterministically, so a retry
+   policy is the obvious next thing this would need in earnest.

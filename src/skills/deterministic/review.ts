@@ -3,25 +3,30 @@
 // path this is APPROVED.
 import fs from "node:fs";
 import path from "node:path";
-import type { SkillContext, SkillResult } from "../types.ts";
-import { artifactsDir, featureImplFile, featureTestFile } from "../paths.ts";
-import { ensureDir, writeFileAtomic } from "../util.ts";
+import type { SkillContext, SkillResult } from "../../types.ts";
+import { artifactsDir, featureImplFiles, featureTestFiles } from "../../paths.ts";
+import { ensureDir, writeFileAtomic } from "../../util.ts";
 
 export function runReview(ctx: SkillContext): SkillResult {
   const { runId } = ctx;
-  const implPath = featureImplFile(runId);
-  const testPath = featureTestFile(runId);
+  const implFiles = featureImplFiles(runId);
+  const testFiles = featureTestFiles(runId);
 
-  const impl = fs.readFileSync(implPath, "utf8");
-  const test = fs.readFileSync(testPath, "utf8");
+  const impl = implFiles.map((f) => fs.readFileSync(f, "utf8")).join("\n");
+  const test = testFiles.map((f) => fs.readFileSync(f, "utf8")).join("\n");
+
+  const specPath = path.join(artifactsDir(runId), "spec.md");
+  const spec = fs.existsSync(specPath) ? fs.readFileSync(specPath, "utf8") : "";
 
   const checks = {
-    hasTest: fs.existsSync(testPath),
+    hasImpl: implFiles.length > 0,
+    hasTest: testFiles.length > 0,
     noTodo: !/TODO|FIXME/.test(impl),
     testAssertsValue: /deepEqual|assert/.test(test),
-    // "simple": tiny single-function implementation, no unrelated machinery.
+    // "simple": a proof-of-concept feature, not a framework.
     simple: impl.length < 2000,
-    matchesSpec: /getInvoiceArchive/.test(impl) && /ARCHIVED/.test(impl),
+    // Traceable to a spec rather than to one hardcoded feature name.
+    matchesSpec: spec.includes("## Acceptance Criteria"),
   };
 
   const approved = Object.values(checks).every(Boolean);
@@ -36,11 +41,12 @@ export function runReview(ctx: SkillContext): SkillResult {
 Decision: ${decision}
 
 ## Checks
+- Implementation present: ${checks.hasImpl}
 - Tests present: ${checks.hasTest}
 - No TODO/FIXME: ${checks.noTodo}
 - Test asserts returned value: ${checks.testAssertsValue}
 - Implementation is simple: ${checks.simple}
-- Matches spec (getInvoiceArchive, ARCHIVED): ${checks.matchesSpec}
+- Traceable to spec acceptance criteria: ${checks.matchesSpec}
 `,
   );
 

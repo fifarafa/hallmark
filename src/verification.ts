@@ -7,7 +7,10 @@ import path from "node:path";
 import type { RunState, State, Verdict } from "./types.ts";
 import {
   artifactsDir,
-  featureImplFile,
+  featureImplFiles,
+  featureSrcDir,
+  featureTestDir,
+  featureTestFiles,
   gitlabMrDir,
   jiraEpicFile,
   jiraTasksDir,
@@ -88,16 +91,26 @@ function verifyPlanned(run: RunState): Verdict {
 }
 
 function verifyBuilt(run: RunState): Verdict {
-  const impl = featureImplFile(run.runId);
   const reportPath = path.join(artifactsDir(run.runId), "build-report.md");
   const testOutputPath = path.join(artifactsDir(run.runId), "test-output.txt");
 
-  if (!exists(impl)) return fail(`implementation missing at ${impl}.`);
+  // Discover what was built — the runner does not assume a filename, so the
+  // same check works for a stub and for an agent building from `--title`.
+  const implFiles = featureImplFiles(run.runId);
+  if (implFiles.length === 0) {
+    return fail(`no implementation files under ${featureSrcDir(run.runId)}.`);
+  }
+  if (featureTestFiles(run.runId).length === 0) {
+    return fail(`no test files under ${featureTestDir(run.runId)}.`);
+  }
   if (!exists(reportPath)) return fail(`build report missing at ${reportPath}.`);
   if (!exists(testOutputPath)) return fail(`test output missing at ${testOutputPath}.`);
 
-  const code = fs.readFileSync(impl, "utf8");
-  if (/TODO|FIXME/.test(code)) return fail("implementation contains TODO/FIXME.");
+  for (const file of implFiles) {
+    if (/TODO|FIXME/.test(fs.readFileSync(file, "utf8"))) {
+      return fail(`implementation contains TODO/FIXME in ${path.basename(file)}.`);
+    }
+  }
 
   // Do not trust the report — re-run the tests ourselves.
   const testRun = runFeatureTests(run.runId);

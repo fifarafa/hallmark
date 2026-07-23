@@ -36,8 +36,8 @@ function cmdStart(runId: string, title: string): void {
   console.log(`Started ${runId} in state ${run.state}. Next step: ${nextStepLabel(run)}.`);
 }
 
-function cmdNext(runId: string): void {
-  const outcome = advanceOne(runId);
+async function cmdNext(runId: string): Promise<void> {
+  const outcome = await advanceOne(runId);
   if (!outcome.transitioned) {
     console.log(outcome.message);
     return;
@@ -49,8 +49,8 @@ function cmdNext(runId: string): void {
   );
 }
 
-function cmdRun(runId: string): void {
-  const outcomes = runToCompletion(runId);
+async function cmdRun(runId: string): Promise<void> {
+  const outcomes = await runToCompletion(runId);
   if (outcomes.length === 0) {
     console.log(`${runId}: nothing to do (state ${readRun(runId).state}).`);
   } else {
@@ -150,7 +150,7 @@ function cmdList(): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const [command, ...rest] = process.argv.slice(2);
 
   try {
@@ -167,10 +167,10 @@ function main(): void {
         break;
       }
       case "next":
-        cmdNext(requireRunId(rest));
+        await cmdNext(requireRunId(rest));
         break;
       case "run":
-        cmdRun(requireRunId(rest));
+        await cmdRun(requireRunId(rest));
         break;
       case "reconcile":
         cmdReconcile(requireRunId(rest));
@@ -205,4 +205,9 @@ function requireRunId(rest: string[]): string {
   return runId;
 }
 
-main();
+// A rejected promise must exit non-zero, not print an unhandled-rejection
+// warning and exit 0 — callers script against this exit code.
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

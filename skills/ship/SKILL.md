@@ -1,5 +1,11 @@
 # Skill: ship
 
+> **Not an agent prompt.** Unlike `spec`, `plan`, `build` and `review`, this step
+> stays deterministic under every provider — it writes a fixed JSON structure and
+> allocates an integer. There is no judgement in it, so handing it to an agent
+> would buy latency and nondeterminism for nothing. The implementation is
+> `src/skills/deterministic/ship.ts`; this file documents its contract.
+
 ## Responsibility
 Simulate opening a merge request and write a ship report.
 
