@@ -21,6 +21,7 @@
 // deterministic stubs' — same rules, no special cases, no new trust.
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { claudeCode, createWorktree } from "@ai-hero/sandcastle";
 import type { SkillContext, SkillResult, Step } from "../../types.ts";
 import { agentLogFile, base } from "../../paths.ts";
@@ -169,7 +170,9 @@ export async function runAgenticSkill(
         agent: claudeCode(agentModel(), { permissionMode: "bypassPermissions" }),
         sandbox: sandboxProvider(),
         promptFile,
-        promptArgs: { RUN_ID: runId, TITLE: title, STEP: step },
+        // Only what the prompts actually reference — sandcastle warns on unused
+        // arguments, and an unused one usually means a prompt typo.
+        promptArgs: { RUN_ID: runId, TITLE: title },
         maxIterations: 1,
         logging: { type: "file", path: logPath },
         hooks: NEEDS_DEPS.has(step)
@@ -217,5 +220,10 @@ export async function runAgenticSkill(
     // stale worktrees. The agent's output has already been copied out (or was
     // not permitted to survive).
     await worktree.close().catch(() => {});
+    // close() removes the worktree but leaves its branch behind, which would
+    // accumulate one ref per step per run. The agent's outputs are gitignored,
+    // so these branches carry nothing the runner ever reads; the transcript in
+    // .hallmark/logs/ is what remains for debugging.
+    spawnSync("git", ["branch", "-D", branch], { cwd: repoRoot, stdio: "ignore" });
   }
 }

@@ -199,12 +199,30 @@ claude setup-token           # then paste into .sandcastle/.env
 cp .sandcastle/.env.example .sandcastle/.env   # and fill in ANTHROPIC_API_KEY
 ```
 
+### Check the setup
+
+```bash
+npx tsx scripts/probe-agent.mts
+```
+
+Runs one real `spec` agent end-to-end — worktree, container, auth, copy-out —
+without touching canonical state or the one-active-run limit. A missing token
+shows up here as a clean `success: false` rather than a failed run.
+
 ### Run
 
 ```bash
 HALLMARK_SKILLS=sandcastle npm run hallmark -- start FEAT-1 --title "Parse ISO-8601 durations"
-HALLMARK_SKILLS=sandcastle npm run hallmark -- run FEAT-1
+
+# Take the first step alone before committing to the full pipeline —
+# spec is the cheapest agent step and proves the plumbing.
+HALLMARK_SKILLS=sandcastle npm run hallmark -- next FEAT-1
+
+HALLMARK_SKILLS=sandcastle npm run hallmark -- run FEAT-1   # the rest
 ```
+
+`HALLMARK_HOME` must be the git repository root under this provider: the agent
+runs in a git worktree of it, and the prompts are read from `skills/`.
 
 `spec`, `plan`, `build` and `review` each become one Claude Code agent run.
 `ship` stays deterministic under every provider — it writes a fixed JSON
