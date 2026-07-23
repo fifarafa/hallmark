@@ -1,0 +1,17 @@
+{
+  "name": "hallmark-run",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic workflow proof-of-concept for agentic software delivery (spec -> plan -> build -> review -> ship).",
+  "scripts": {
+    "hallmark": "tsx src/cli.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

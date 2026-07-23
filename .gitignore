@@ -1,0 +1,9 @@
+node_modules/
+.idea/
+.DS_Store
+
+# Generated workflow state and simulated external systems (runtime output).
+.hallmark/
+.simulated/
+artifacts/
+workspace/
